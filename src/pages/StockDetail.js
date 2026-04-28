@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import '../style/stock-detail.css';
 import StockCharts from '../componets/StockChart';
@@ -18,20 +18,26 @@ import { db } from '../firebase';
 function StockDetail({ user, setUser, stocks }) {
   const { id } = useParams(); //url name 파라미터 값 추출 (객체 비구조화 할당)
   const navigate = useNavigate();
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState();
   const [toastMessage, setToastMessage] = useState('');
   // 굳이 '' 를 반환하는 이유는 input이 문자열인걸 명시적으로 정하기 위해
   //<input value={input} onChange={...} /> 이런 경우
   // 초기 값이 없다면 언디파인드 뜨지
 
-  const [chartMode, setChartMode] = useState('daily');
+  const [chartMode, setChartMode] = useState('realtime');
   const [dailyHistory, setDailyHistory] = useState([]);
+  const [tradeMod, setTradeMode] = useState('buy');
 
   const stock = stocks.find((s) => {
     return s.id === id;
   });
 
   const params = useParams();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    //document.documentElement.scrollTop = 0;
+  }, []);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -55,6 +61,11 @@ function StockDetail({ user, setUser, stocks }) {
     fetchDailyHistory(id);
   }, [id, user]);
 
+  useEffect(() => {
+    console.log('stock값 = ', stock);
+  }, [stock]);
+
+  console.log('유저스테이트', user);
   const position = user?.stocks?.[id] ?? { qty: 0, totalCost: 0 };
   const qty = position.qty;
   const totalCost = position.totalCost;
@@ -63,13 +74,14 @@ function StockDetail({ user, setUser, stocks }) {
   const currentValue = stock.price * qty; //현재가 * 보유갯수
   const profit = currentValue - totalCost; //평가 손익 원
   const profitRate = (profit / totalCost) * 100; // 등락비율
+  const maxBuy = Math.floor((user?.balance ?? 0) / stock.price);
+  const isOver = input !== '' && Number(input) > maxBuy;
+  const totalCost_amount = (stock.price ?? 0) * (input ?? 0);
+  //input이 공백이 아니면 input과 maxBuy 값을 비교해서 false/true를 반환
+  const isNoMoney = maxBuy === 0;
 
-  useEffect(() => {
-    console.log('stock값 = ', stock);
-  }, [stock]);
-  if (!user) return <p>로딩 중...</p>;
-
-  console.log('유저스테이트', user);
+  // null병합연산자 => null/undefined만 체크
+  // || 연산자 => false, 0, '', null, undefined, NaN 체크
 
   //find는 배열에서 조건을 만족하는 첫번째 요소를 리턴 (리턴에서 true가 나오면 그 배열 자체를 반환)
   //조건 만족하는 모든 걸 리턴하려면 filter()
@@ -363,66 +375,253 @@ function StockDetail({ user, setUser, stocks }) {
     // navigate('/');
   };
 
+  const handlePercent = (percent) => {
+    //현재 가진 돈 / 현재 주식 가격
+    // const buy_quantity = Math.floor(((user.balance / stock.price) * percent) / 100);
+    if (tradeMod === 'buy') {
+      //  const maxBuy = Math.floor((user?.balance ?? 0) / stock.price);
+      // 1/0 = infinity , 0/1 = 0
+
+      const buyQty = Math.floor(maxBuy * percent);
+      setInput(buyQty === 0 ? '' : String(buyQty));
+      return;
+    }
+    if (tradeMod === 'sell') {
+      const sellQty = Math.max(1, Math.floor(qty * percent));
+      setInput(String(sellQty));
+      return;
+    }
+  };
+
+  // input value는 항상 string이므로 state도 string으로 유지한다.(trim 같은 매소드에서 에러날 수도 있고)
+  // (계산할 때만 Number로 변환)
+  const normalizeQuantity = (value) => {
+    const v = value.trim();
+    console.log('결과 처음값', v);
+
+    //공백
+    if (v === '') {
+      setInput('');
+      return;
+    }
+    //정수만
+    if (!/^\d+$/.test(v)) {
+      setInput('');
+      return;
+    }
+    //test는 정규식 패턴에 맞다면 ture 반환 , /^\d+$/ 이건 양(0포함)의 정수로만 이뤄져 있는가 확인 정규식
+
+    //0 들어오면 공백
+    if (v === '0') {
+      setInput('');
+      return;
+    }
+
+    setInput(v);
+  };
+
+  const handleFocus = () => {
+    if (input === '0') setInput('');
+  };
+
+  const handleIncrease = () => {
+    setInput((prev) => {
+      const v = String(prev).trim();
+      // undefined 나 null이 와도 String 함수가 문자열로 변경함 "undefined" , "null" 이렇게
+
+      if (!/^\d+$/.test(v)) return '1';
+      //양수가 아니라면 string 1을 리턴
+
+      const num = Number(v);
+      return String(num + 1);
+    });
+  };
+
+  const handleDecrease = () => {
+    setInput((prev) => {
+      const v = String(prev).trim();
+      console.log('v값', v);
+
+      //들어온 값이 양수가 아닐 경우,
+      // test는 문자열 기준으로 검사해서 number로 넣어도 string으로 변경 후 검사
+      if (!/^\d+$/.test(v)) {
+        return '1';
+      }
+
+      //1일 경우
+      if (v === '1') {
+        console.log('v값 1들어와서 초기화');
+        return prev;
+      }
+
+      return String(Number(v) - 1);
+    });
+  };
+
   return (
     <div className="stock-detail">
+      {/* <div className="test1">
+        <div>
+          1<div>44</div>
+          <div>44</div>
+        </div>
+        <div>
+          2<div>44</div>
+          <div>44</div>
+        </div>
+      </div> */}
       {toastMessage && <div className="toast">{toastMessage}</div>}
       {/* 여기서 &&는 그리고의 뜻이 아닌 참이면 다음 것을 랜더링한다 의미  */}
-      <button onClick={() => navigate(-1)} className="back-button">
-        ←뒤로 가기
-      </button>
-      <h2>{stock.name} 상세</h2>
-      <div className="info_wrap">
-        <p>현재가: {stock.price} 원</p>
-        <p>보유 수량: {owned} 주</p>
-        <p>잔액: {user.balance} 원</p>
-      </div>
-
-      {qty > 0 && (
-        <div className="position-summary">
-          <p>평균단가: {average_price.toLocaleString()}원</p>
-          <p>
-            평가손익: {profit.toLocaleString()}원 ({profitRate.toFixed(2)}%)
+      {!user ? (
+        <div className="guest_area">
+          <p className="welcome-desc">로그인 후 다양한 기능을 이용해보세요.</p>
+          <button className="btn primary " onClick={() => navigate('/login')}>
+            로그인
+          </button>
+          <p className="welcome-desc">
+            계정이 없으신가요?
+            <Link to="/signup" className="link_signup">
+              회원가입 하기
+            </Link>
           </p>
         </div>
-      )}
-      <div className="trade-buttons">
-        <button onClick={handleBuy} className="buy">
-          매수
-        </button>
-        <button onClick={handleSell} className="sell">
-          매도
-        </button>
-      </div>
-      <input
-        type="number"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="수량 입력"
-      />
+      ) : (
+        <>
+          <div className="stockDetail_header">
+            <button onClick={() => navigate(-1)} className="back-button">
+              <i class="fa fa-chevron-left" aria-hidden="true"></i>
+            </button>
+            <h2>{stock.name}</h2>
+          </div>
 
-      <div>
-        <h3>📊 가격 변동 추이</h3>
-        <div className="detail-chart">
-          <div className="chart-actions">
+          <div className="category-control">
             <button
-              onClick={() => setChartMode('realtime')}
-              className={chartMode === 'realtime' ? 'active' : ''}
+              onClick={() => setTradeMode('buy')}
+              className={`btn ${tradeMod === 'buy' ? 'active_red' : ''}`}
             >
-              실시간
+              구매
             </button>
             <button
-              onClick={() => setChartMode('daily')}
-              className={chartMode === 'daily' ? 'active' : ''}
+              onClick={() => setTradeMode('sell')}
+              className={`btn ${tradeMod === 'sell' ? 'active_blue' : ''}`}
             >
-              종가
+              판매
             </button>
           </div>
-        </div>
-        <StockCharts
-          history={chartMode === 'realtime' ? stock.history : dailyHistory}
-          mode={chartMode}
-        />
-      </div>
+          <div className="quantity-control">
+            <div className="box1">
+              <label>수량</label>
+
+              <input
+                value={input}
+                className="quantity_input"
+                type="text"
+                onChange={(e) => normalizeQuantity(e.target.value)}
+                onFocus={handleFocus}
+                placeholder={
+                  tradeMod === 'buy' ? `최대 ${maxBuy}주 구매 가능` : `최대 ${qty}주 판매 가능`
+                }
+                // min="0"
+              />
+
+              <button className="quantity_btn plus" onClick={handleIncrease}>
+                <span>+</span>
+              </button>
+              <button className="quantity_btn minus" onClick={handleDecrease}>
+                <span>-</span>
+              </button>
+              {/* input에 입력 받는 것은 모두 string으로 받아진다.. 숫자도 마찬가지 */}
+
+              {/* {tradeMod === 'buy' ? (
+          input > maxBuy ? (
+            <p className="quantity-error">최대 {maxBuy}주까지만 구매 가능 </p>
+          ) : (
+            ''
+          )
+        ) : (
+          ''
+        )} */}
+            </div>
+            {tradeMod === 'buy' && isOver && (
+              <p className="quantity-error">현재 금액에선 최대 {maxBuy}주 구매 가능합니다.</p>
+            )}
+            {tradeMod == 'sell' && input !== '' && Number(input) > qty && (
+              <p className="quantity-error">최대 {qty}주까지만 판매 가능합니다.</p>
+            )}
+            <div className="box2">
+              <div className="percent-buttons">
+                <button onClick={() => handlePercent(0.1)}>
+                  <span>10%</span>
+                </button>
+                <button onClick={() => handlePercent(0.25)}>
+                  <span>25%</span>
+                </button>
+                <button onClick={() => handlePercent(0.5)}>
+                  <span>50%</span>
+                </button>
+                <button onClick={() => handlePercent(1)}>최대</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="info_wrap">
+            {qty > 0 && (
+              <>
+                <p>평균단가: {average_price.toLocaleString()}원</p>
+                {/* <p>
+              평가손익: {profit.toLocaleString()}원 ({profitRate.toFixed(2)}%)
+            </p> */}
+              </>
+            )}
+
+            <p>현재가: {stock.price}원</p>
+            <p>보유 수량: {owned}주</p>
+            <p>잔액: {user?.balance.toLocaleString('ko-KR')}원</p>
+            <p className="totalCost_amount">
+              총 주문 금액: {totalCost_amount.toLocaleString('ko-KR')}원
+            </p>
+          </div>
+          <div className="trade-buttons">
+            {tradeMod == 'buy' ? (
+              <button onClick={handleBuy} className={tradeMod === 'buy' ? 'buy' : ''}>
+                <span>
+                  주당 <span>{stock.price.toLocaleString('ko-KR')}</span>원 에 구매하기
+                </span>
+              </button>
+            ) : (
+              <button onClick={handleSell} className={tradeMod === 'sell' ? 'sell' : ''}>
+                <span>
+                  주당 <span>{stock.price.toLocaleString('ko-KR')}</span>원 에 판매하기
+                </span>
+              </button>
+            )}
+          </div>
+
+          <div class="chart-section">
+            <div className="detail-chart">
+              <div className="chart-actions">
+                <button
+                  onClick={() => setChartMode('realtime')}
+                  className={chartMode === 'realtime' ? 'active' : ''}
+                >
+                  실시간
+                </button>
+                <button
+                  onClick={() => setChartMode('daily')}
+                  className={chartMode === 'daily' ? 'active' : ''}
+                >
+                  종가
+                </button>
+              </div>
+            </div>
+            <StockCharts
+              history={chartMode === 'realtime' ? stock.history : dailyHistory}
+              mode={chartMode}
+              stock={stock}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

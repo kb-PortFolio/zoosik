@@ -26,7 +26,7 @@ import {
   limit,
   documentId,
 } from 'firebase/firestore';
-import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 
 import { auth, db } from './firebase';
 // import { initUserPrices } from './initUserPrices';
@@ -42,9 +42,10 @@ function App() {
     {
       id: 'BearTech',
       name: '비어테크',
-      price: 2222,
-      history: [{ price: 2222, time: Date.now() }],
-      prevClose: 0,
+      price: 9999,
+      history: [],
+      prevClose: 111,
+      logo: '',
     },
     { id: 'KoalaSoft', name: '코알라테크', price: 8930, history: [], prevClose: 0 },
     { id: 'HamsterCorp', name: '햄스터회사', price: 19542, history: [], prevClose: 0 },
@@ -58,17 +59,17 @@ function App() {
   const [stocks, setStocks] = useState(DEFAULT_STOCKS);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
-  const [booting, setBooting] = useState(true);
+  const [booting, setBooting] = useState(false);
 
   const stock_volatility = {
     BearTech: 0.001, // ±0.1%
     KoalaSoft: 0.01, // ±1%
-    HamsterCorp: 0.0005, // ±0.05%
+    HamsterCorp: 0.03, // ±3%
     TigerMotors: 0.002, // ±0.2%
     PenguinWorks: 0.008, // ±0.8%
     ElephantInc: 0.0009, // ±0.09%
     RabbitNetWorks: 0.01, // ±1%
-    FoxSystems: 0.0005, // ±0.05%
+    FoxSystems: 0.015, // ±15%
   };
   // //임시 데이터 넣기
   // const reseedAllStockHistory30 = async (uid, DEFAULT_STOCKS) => {
@@ -114,31 +115,49 @@ function App() {
   // }, [user]);
   // //임시로 테스트 끗
 
+  //체험용 아이디 강제로 로그인하게
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      // onAuthStateChanged는 auth 객체와 콜백을 인자로 받아
+      // 로그인 상태가 변경될 때마다 콜백을 실행하는 리스너를 등록한다.
+      // 반환값으로 구독 해제(unsubscribe) 함수를 제공한다.
       if (currentUser) {
-        // 🔹 login.js와 동일한 패턴
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userSnap = await getDoc(userDocRef);
+        // 실제 getDoc로 가져오는 값은 아래와 같은 구조의 DocumentSnapshot 객체
+        // DocumentSnapshot = {
+        //   id: "abc123",
+        //   exists: function() {...},
+        //   data: function() {
+        //     return {
+        //       balance: 100000,
+        //       nickname: "kim",
+        //       stocks: {...},
+        //       updatedAt: Timestamp
+        //     }
+        //   }
+        // }
 
         if (userSnap.exists()) {
-          setUser(userSnap.data());
+          //setUser(userSnap.data());
         }
 
         setBooting(false);
       } else {
-        // 🔹 로그인 안 되어 있으면 → 체험 계정 자동 로그인
-        try {
-          await signInWithEmailAndPassword(auth, TEST_EMAIL, TEST_PW);
-          alert('현재 체험용 계정으로 접속 중입니다');
-        } catch (e) {
-          console.error('체험 계정 자동 로그인 실패', e);
-          setBooting(false);
-        }
+        // try {
+        //   await signInWithEmailAndPassword(auth, TEST_EMAIL, TEST_PW);
+        //   alert('현재 체험용 계정으로 접속 중입니다');
+        // } catch (e) {
+        //   console.error('체험 계정 자동 로그인 실패', e);
+        //   setBooting(false);
+        // }
       }
     });
 
     return () => unsubscribe();
+    //useEffect는 리턴값이 없거나 클린업 함수만 리턴이 가능한데
+    //unsubscribe 함수가 클린업 함수인지 구분하는건 리턴값이 함수면 클린업 함수라 인지함
+    //if (typeof unsubscribe === 'function' )
   }, []);
 
   //날짜 관련 함수
@@ -167,6 +186,7 @@ function App() {
 
     if (snap.exists()) {
       //exists() 이건 getDoc 전용임
+      console.log('어제 종가', snap.data().close);
       return snap.data().close;
     }
 
@@ -200,6 +220,7 @@ function App() {
     // metadata: {...}       // 기타 정보
     if (!snap.empty) {
       //empty 값이 false 라면, 즉 비어잇지 않다면
+      console.log('getMostRecentClose', snap.docs[0].data().close);
       return snap.docs[0].data().close;
     }
 
@@ -252,6 +273,7 @@ function App() {
     const yesterday = getYesterdayStr();
 
     const close = await getYesterdayClose(uid, stockName, yesterday);
+    console.log('[getPreviousClose] close값 = ', close);
     return close != null ? close : await getMostRecentClose(uid, stockName);
   }
   // async function getYesterdayClose(uid, stockName, yesterdayStr) {
@@ -318,7 +340,7 @@ function App() {
   useEffect(() => {
     if (!user?.uid) return;
 
-    const INTERVAL_MS = 10 * 1000;
+    const INTERVAL_MS = 20 * 1000;
     const id = setInterval(() => {
       // 현재 메모리에 있는 stocks를 그대로 저장
       savePricesToFirestore(user.uid, current_stocks.current);
@@ -344,23 +366,39 @@ function App() {
 
   useEffect(() => {
     // 로그아웃/미로그인이면 기본값으로
+    console.log('[soxl] 유저이펙트 실행', user);
 
-    if (!user?.uid) {
-      console.log('[2] user 없음 → DEFAULT_STOCKS로 리셋됨');
-      setStocks(DEFAULT_STOCKS);
+    if (user === undefined) {
+      console.log('[soxl]아직 로딩중');
       return;
     }
 
+    // if (!user?.uid) {
+    if (!user) {
+      console.log('[soxl][2] user 없음 → DEFAULT_STOCKS로 리셋됨');
+      setStocks(DEFAULT_STOCKS);
+      console.log('[soxl][에러] user값', user);
+      return;
+    }
+
+    console.log('[soxl] user값', user);
+
     //디비에서 가격 불러오는 함수
+
     const loadPrices = async () => {
+      console.log('[soxl] loadPrice 실행됨');
       try {
+        console.log('통과-1', user, user.uid);
         const snap = await getDocs(collection(db, 'users', user.uid, 'prices'));
+        console.log('통과0');
         //console.log('첫번째종목 ID', snap.docs[0].id);
         if (snap.empty) {
           // 아직 prices 없으면 그냥 기본값 유지
+          console.log('laod 실행 실패', snap);
           return;
         }
 
+        console.log('통과1');
         const priceMap = {};
         // QuerySnapshot {
         //   docs: [
@@ -390,34 +428,43 @@ function App() {
         //   metadata: { fromCache: false },
         //   query: Query(...)
         // }
-
+        console.log('통과2');
         snap.docs.forEach((aa) => {
           priceMap[aa.id] = aa.data();
         });
-
-        // priceMap = {
+        console.log('통과3');
+        // priceMap = [
         //   BearTech: { price: 111, updatedAt: Timestamp(...) },
         //   KoalaSoft: { price: 222, updatedAt: Timestamp(...) },
         //   ...
-        // }
+        // ]
         // getPreviousClose(uid, stockName)
-
         const priceMaps = await Promise.all(
           Object.keys(priceMap).map(async (value) => {
             //Object.keys 는 객체의 키를 배열로 출력해줌
             const currentPrice = priceMap[value].price;
             const prev = await getPreviousClose(user.uid, value);
+            console.log('prev값==', prev);
             const meta = DEFAULT_STOCKS.find((s) => s.id === value);
+            //          {
+            //   id: 'BearTech',
+            //   name: '비어테크',
+            //   price: 2222,
+            //   history: [],
+            //   prevClose: 0,
+            //   logo: '/logos/bearTech.png',
+            // },
 
             return {
               id: value,
               name: meta?.name ?? '디비없음',
               price: priceMap[value].price,
-              history: [{ preice: priceMap[value].price, time: Date.now() }],
+              history: [{ price: priceMap[value].price, time: Date.now() }],
               // 왜 value.price 가 안되냐면
               // value는 문자열로 가져옴, 즉 "종목명".키값 이 되므로
               //priceMap[BearTech].price 이런식으로 가져와야함
               prevClose: prev > 0 ? prev : currentPrice,
+              logo: `/logos/${value}.png`,
               // prev 값이 0 이거나 null 이면 추후 계산시 오류가 생김
             };
           })
@@ -431,8 +478,8 @@ function App() {
         console.error('prices 불러오기 에러:', e);
       }
     };
-
     loadPrices();
+
     console.log('현재 유저의 스테이트 = ', user);
   }, [user?.uid]);
 
@@ -445,7 +492,7 @@ function App() {
       // 첫 번째 인자 auth는 인증 객체 , 두번째는 콜백할 매개변수
       //현재 로그인된 사용자 정보(auth)의 여부에 따라 { uid, email, displayName, ... }
       // null이 될 수도 있음 (로그아웃)
-      const ak = fbUser ?? 'yes';
+      const ak = fbUser ?? 'fbuser 비어있음';
       console.log('auth 변화 감지됨=', ak);
 
       if (unsubUser) {
@@ -481,15 +528,7 @@ function App() {
         */
           setUser({ uid: fbUser.uid, ...ss.data() });
         } else {
-          const once = await getDoc(userRef);
-          if (once.exists()) setUser({ uid: fbUser.uid, ...once.data() });
-          else setUser(null);
-          //else로 데이터가 있는지 왜 또 확인을 하냐면
-          //onSnapshot은 실시간 리스너라 연결 직후 첫 데이터를 받을 때
-          //가끔 빈 상태로 보일 수도 잇다
-          //특정 사항에서 실시간 리스너 규칙이나 권한 문제로 실패할 수 잇으나
-          //geDoc는 성공하는 경우가 있어 한 번 더 써주는것
-          //솔직히 포폴용으로는 else null 만 해도 충분
+          setUser(null);
         }
       });
       //실시간 리스너 함수로 doc나 collect을 구독해서 해당 데이터가 바뀔 때
@@ -524,6 +563,7 @@ function App() {
   }, [user]);
 
   useEffect(() => {
+    if (!user?.uid) return;
     const interval = setInterval(updatePrices, 1000);
     // setInterval은 변수 지정만으로도 실행되고 첫 번째 인자는 함수명을 넣어야함
     // 함수명() 을 넣으면 해당 함수의 리턴값이 들어가버리지
@@ -531,7 +571,7 @@ function App() {
     return () => clearInterval(interval);
     //함수에 담아서 나중에 리턴시 호출해야 바로 실행이 되지 않음
     //return clearInterval(interval) 은 마운트시 바로 실행됨
-  }, []);
+  }, [user?.uid]);
 
   const updatePrices = () => {
     //명시적 리턴 , 딱히 리턴할게 없을 때는 명시를 씀
@@ -597,7 +637,7 @@ function App() {
 
   return (
     <div>
-      <TestUserBanner />
+      {/* <TestUserBanner /> */}
       <Router>
         <Routes>
           <Route element={<AppLayout />}>
@@ -612,12 +652,12 @@ function App() {
                 />
               }
             />
-            <Route path="/login" element={<Login setUser={setUser} />} />
+            <Route path="/login" element={<Login />} />
             {/* "setUser2: setUser" 객체 형태로 보냄 */}
             <Route path="/signup" element={<Signup setUser={setUser} />} />
             <Route path="/settings" element={<Settings user={user} setUser={setUser} />} />
-            <Route path="/explore" element={<Explore stocks={stocks} />} />
-            <Route path="/history" element={<History user={user} />} />
+            <Route path="/explore" element={<Explore stocks={stocks} user={user} />} />
+            <Route path="/history" element={<History user={user} stocks={stocks} />} />
             <Route
               path="/stock/:id"
               element={<StockDetail user={user} setUser={setUser} stocks={stocks} />}

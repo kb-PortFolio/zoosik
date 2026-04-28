@@ -1,20 +1,37 @@
-/* ===============================
-   0. Reset
-================================ */
 * {
   box-sizing: border-box;
+}
+:root {
+  /* 색상 */
+  --color-bg-card: #f2f4f6;
+  --color-bg-soft: rgb(244, 244, 244, 1);
+  --color-bg-soft-hover: rgb(131, 131, 131);
+  --color-font-gray_strong: #686868;
+  --color-font-gray: #9e9e9e;
+  --color-font-soft: #b4b4b4;
+  --color-font-soft2: #d8d8d8;
+  --color-font-soft3: #f3f4f6;
+  --color-font-middleDart: #333d4b;
+  --color-font-blue: #164ed1;
+  --color-font-blue2: #2354bd;
+  --color-font-red: #d60c0c;
+  --color--font-black: #374151;
+}
+html {
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 body {
   margin: 0;
-  background: #f2f4f6;
   font-family:
     'Noto Sans KR',
     -apple-system,
     BlinkMacSystemFont,
     sans-serif;
   color: #111827;
-  font-size: 16px;
+
+  background: #ffffff;
 }
 
 a,
@@ -25,61 +42,63 @@ a:active {
   text-decoration: none;
 }
 
-/* ===============================
-   1. App Container (Mobile)
-================================ */
+i {
+  line-height: 1;
+}
 #root {
   max-width: 500px;
   margin: 0 auto;
-  min-height: 100vh;
-  background: #f9fafb;
-  padding: 28px 16px 96px 20px;
+  min-height: 100vh; /*디바이스 뷰포트 높이의 100%*/
+  padding: 24px 1.8rem 130px;
 }
 
-/* ===============================
-   2. Typography
-================================ */
+h1 {
+  font-size: 1.75rem;
+  margin-bottom: 28px;
+}
 h1,
 h2 {
   font-weight: 700;
   letter-spacing: -0.3px;
+  margin-top: 0;
 }
 
 h2 {
   font-size: 22px;
-  margin: 24px 0 12px;
+  margin-bottom: 24px;
 }
 
 p,
 span {
-  font-size: 16px;
-  line-height: 1.5;
+  /* font-size: 16px;
+  line-height: 1.5; */
 }
 
-/* 보조 텍스트 */
+.btn {
+  padding: 0.7rem 0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
 .sub,
 small {
   font-size: 13px;
   color: #6b7280;
 }
 
-/* ===============================
-   3. List 기본 스타일 제거
-================================ */
 ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-li {
-  margin-bottom: 12px;
-}
-
-/* ===============================
-   4. Card 스타일 (모든 페이지 공통)
-================================ */
-li,
+/* li,
 .card,
 div[class*='item'],
 div[class*='box'] {
@@ -87,34 +106,21 @@ div[class*='box'] {
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
+} */
 
-/* ===============================
-   5. 금액 / 수익률 컬러
-================================ */
 .plus {
   color: #ef4444; /* 수익 */
   font-weight: 600;
 }
 
+.blur {
+  filter: blur(3px);
+  pointer-events: none;
+  user-select: none;
+}
 .minus {
   color: #2563eb; /* 손실 */
   font-weight: 600;
-}
-
-/* ===============================
-   6. 버튼 공통
-================================ */
-button {
-  width: 100%;
-  height: 44px;
-  border-radius: 12px;
-  border: none;
-  background: #3182f6;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
 }
 
 button:disabled {
@@ -122,47 +128,67 @@ button:disabled {
   cursor: default;
 }
 
-/* ===============================
-   7. Bottom Navigation
-================================ */
 nav,
 .bottom-nav {
   position: fixed;
-  bottom: 0;
+  bottom: 35px;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
+  width: 85%;
   max-width: 500px;
-  height: 80px;
+  border-radius: 50px;
+  height: 65px;
   background: #ffffff;
-  border-top: 1px solid #e5e7eb;
-
+  box-shadow: 1px 1px 9px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-around;
   align-items: center;
 }
 
-/* 네비 아이템 */
-nav a,
-.bottom-nav a {
+.bottom-nav .bottom-nav__item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-
-  font-size: 12px;
-  color: #6b7280;
+  gap: 0px;
+  color: var(--color-font-soft);
 }
-
-nav a.active,
-.bottom-nav a.active {
-  color: #3182f6;
+.bottom-nav__item.is-active {
   font-weight: 600;
+  color: var(--color-font-middleDart);
+}
+.bottom-nav .bottom-nav__label {
+  font-size: 0.8rem;
 }
 
-/* ===============================
-   Test User Banner (Top Bar)
-================================ */
+.form-container {
+  max-width: 400px;
+  margin: 80px auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+input {
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  font-size: 16px;
+}
+button {
+  width: 100%;
+
+  /* background-color: #ffb347; */
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: var(--color-font-soft3);
+}
+
 .test-user-banner {
   position: absolute;
   top: 0;
@@ -171,19 +197,12 @@ nav a.active,
 
   height: 28px;
   line-height: 28px;
-
   font-size: 11px;
   color: #6b7280;
   text-align: center;
 
   background: rgba(49, 130, 246, 0.025);
   z-index: 20;
-}
-
-/* ===============================
-   Text Type Common
-================================ */
-.txt_type1 {
 }
 .txt_type1 .t1 {
   margin-right: 10px;
@@ -198,9 +217,66 @@ nav a.active,
 .txt_type1 .t3 {
   margin-right: 5px;
 }
-/* ===============================
-   List Type Common
-================================ */
+
 .list_type1 {
   margin-bottom: 2rem;
+}
+
+/*아래는 테스트용 임*/
+.test_flex {
+  display: flex;
+  flex-direction: row;
+  /* 기본값 row 가로,  column 세로*/
+  justify-content: space-evenly;
+  /*주축 정렬*/
+  align-items: center;
+  /* 교차축 정렬 */
+  background: red;
+  height: 100px;
+}
+.test_flex > div {
+  background: blue;
+  width: 100px;
+  word-break: break-word;
+  flex-basis: 50px;
+}
+
+.test_flex > div:nth-child(1) {
+  flex-grow: 2;
+}
+.test_flex > div:nth-child(2) {
+  flex-grow: 1;
+}
+.test_flex > div:nth-child(3) {
+  flex-grow: 1;
+}
+
+.test_grid {
+  display: grid;
+  grid-template-columns: 5fr 2fr 3fr;
+}
+
+.welcome-desc {
+  color: #6f6c8f;
+  padding: 1.6rem 0 2rem;
+  margin: 0;
+  border-radius: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+}
+.btn.primary {
+  color: white;
+  border-radius: 16px;
+  padding: 18px 0;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  background: linear-gradient(135deg, #c7a8ff 0%, #cbb6fc 40%, #9b91f8 100%);
+  box-shadow: 0 8px 20px rgba(255, 156, 248, 0.35);
+}
+.error,
+.error-text {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #d60c0c;
 }

@@ -1,15 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+// import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 
-
 import '../style/login.css';
-import '../style/form.css';
 
-function Login({ setUser }) {
+function Login() {
   // 이렇게 props 객체를 받음
   // props = {
   //  setUser2: setUser
@@ -42,43 +40,27 @@ function Login({ setUser }) {
     setError(null); //에러 유무 다시 초기화
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, pw);
-      //auth , email , pw 서버로 넘겨주면 해당 계정이 맞는지 검사해서 리턴
-      const user = userCredential.user;
-      //userCredential는 로그인에 성공하면 반환되는 객체로 로그인 된 계정 정보 및 인증 데이터가 잇음
-      const userDocRef = doc(db, 'users', user.uid);
-      //users 컬렉션안에 user.uid라는 id를 가진 문서를 참조하는 객체
-      const userSnap = await getDoc(userDocRef);
-      //userDocRef 에서 만든 정보로 디비를 가져옴
-
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        setUser(userData);
-        navigate('/');
-      } else {
-        setError('사용자 정보가 존재하지 않습니다.');
-      }
+      await signInWithEmailAndPassword(auth, email, pw);
+      navigate('/');
     } catch (err) {
       console.error('로그인 실패: ', err);
       setError('이메일 또는 비밀번호가 올바르지 않습니다.');
     }
-    // const dummyUser = {
-    //   id,
-    //   nickname: id + '님',
-    //   balance: 1000000,
-    //   stocks: {},
-    // };
   };
 
   return (
     <div className="login-container">
-      <button onClick={() => navigate(-1)} className="back-button">
-        ←뒤로 가기
-      </button>
-      <h2>🐵 ZooSik 로그인</h2>
+      <div className="stockDetail_header">
+        <button onClick={() => navigate(-1)} className="back-button">
+          <i class="fa fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <h2>로그인</h2>
+      </div>
+
       <form onSubmit={handleLogin}>
         <input
           type="email"
+          className="login-input login-input--email"
           placeholder="이메일을 입력하세요"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -87,18 +69,26 @@ function Login({ setUser }) {
         />
         <input
           type="password"
+          className="login-input login-input-pw"
           placeholder="비밀번호를 입력하세요"
           value={pw}
           onChange={(e) => setPw(e.target.value)}
           autoComplete="current-password"
           required
         />
-        <button type="submit">로그인</button>
+        <button type="submit" className="btn primary">
+          로그인
+        </button>
       </form>
       {error && <p className="error">{error}</p>}
-      <p>
-        계정이 없으신가요? <Link to="/signup">회원가입</Link>
-      </p>
+      <div className="guest_area">
+        <p className="welcome-desc">
+          계정이 없으신가요?
+          <Link to="/signup" className="link_signup">
+            회원가입 하기
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

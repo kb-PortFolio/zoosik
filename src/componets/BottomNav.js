@@ -13,30 +13,47 @@ export default function BottomNav() {
         // }
         className={({ isActive }) => `bottom-nav__item ${isActive ? 'is-active' : ''}`}
       >
-        <span className="bottom-nav__icon">🏠</span>
+        <span className="bottom-nav__icon">
+          <i class="fa fa-home" aria-hidden="true"></i>
+        </span>
         <span className="bottom-nav__label">내계좌</span>
       </NavLink>
       <NavLink
         to="/explore"
-        className={({ isActive }) => 'bottom-nav_item ' + (isActive ? 'is-active' : '')}
+        className={({ isActive }) => `bottom-nav__item ${isActive ? 'is-active' : ''}`}
       >
-        <span className="bottom-nav__icon">🔍</span>
+        <span className="bottom-nav__icon">
+          <i class="fa fa-search" aria-hidden="true"></i>
+        </span>
         <span className="bottom-nav__label">탐색</span>
       </NavLink>
-      <NavLink
+      {/* <NavLink
         to="/history"
         className={({ isActive }) => {
           return 'bottom-nav_icon ' + (isActive ? 'is-active' : '');
         }}
       >
-        <span className="bottom-nav__icon">🧾</span>
+        <span className="bottom-nav__icon">
+          <i class="fa fa-list-alt" aria-hidden="true"></i>
+        </span>
+        <span className="bottom-nav__label">내역</span>
+      </NavLink> */}
+      <NavLink
+        to="/history"
+        className={({ isActive }) => `bottom-nav__item ${isActive ? 'is-active' : ''}`}
+      >
+        <span className="bottom-nav__icon">
+          <i class="fa fa-list-alt" aria-hidden="true"></i>
+        </span>
         <span className="bottom-nav__label">내역</span>
       </NavLink>
       <NavLink
         to="/settings"
         className={({ isActive }) => `bottom-nav__item ${isActive ? 'is-active' : ''}`}
       >
-        <span className="bottom-nav__icon">⚙️</span>
+        <span className="bottom-nav__icon">
+          <i class="fa fa-cog" aria-hidden="true"></i>
+        </span>
         <span className="bottom-nav__label">설정</span>
       </NavLink>
     </nav>

@@ -1,3 +1,11 @@
 .signup-container {
-  composes: form-container;
+  display: flex;
+  gap: 1rem;
+  flex-direction: column;
+}
+.signup-container .signup-input {
+  margin-bottom: 0.6rem;
+}
+.signup-container .signup-input-nick {
+  margin-bottom: 1.5rem;
 }

@@ -7,7 +7,6 @@ import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 import '../style/signup.css';
-import '../style/form.css';
 
 function Signup() {
   //setUser 프롭 받던거 삭제
@@ -63,10 +62,13 @@ function Signup() {
 
   return (
     <div className="signup-container">
-      <button onClick={() => navigate(-1)} className="back-button">
-        ←뒤로 가기
-      </button>
-      <h2>🦁 ZooSik 회원가입</h2>
+      <div className="stockDetail_header">
+        <button onClick={() => navigate(-1)} className="back-button">
+          <i class="fa fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <h2>회원가입</h2>
+      </div>
+
       <form onSubmit={handleSignup}>
         <input
           type="email"
@@ -74,6 +76,7 @@ function Signup() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          className="signup-input signup-input-email"
         />
         <input
           type="password"
@@ -82,6 +85,7 @@ function Signup() {
           onChange={(e) => setPw(e.target.value)}
           minLength={6}
           required
+          className=" signup-input signup-input-pw"
         />
         <input
           type="password"
@@ -90,6 +94,7 @@ function Signup() {
           onChange={(e) => setPwConfirm(e.target.value)}
           minLength={6}
           required
+          className="signup-input signup-input-pw-re"
         />
         <input
           type="text"
@@ -98,13 +103,21 @@ function Signup() {
           onChange={(e) => setNickname(e.target.value)}
           maxLength={20}
           required
+          className="signup-input signup-input-nick"
         />
-        <button type="submit">회원가입</button>
+        <button type="submit" className="btn primary">
+          회원가입
+        </button>
       </form>
       {error && <p className="error-text">{error}</p>}
-      <p>
-        이미 계정이 있으신가요? <Link to="/login">로그인</Link>
-      </p>
+      <div className="guest_area">
+        <p className="welcome-desc">
+          이미 계정이 있으신가요?{' '}
+          <Link to="/login" className="link_signup">
+            로그인
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

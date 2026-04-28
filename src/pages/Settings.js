@@ -1,8 +1,8 @@
-import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signOut } from 'firebase/auth';
 import { doc, updateDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { Link, useNavigate } from 'react-router-dom';
 import '../style/setting.css';
 
 export default function Settings({ user, setUser }) {
@@ -27,10 +27,14 @@ export default function Settings({ user, setUser }) {
     alert('닉네임이 변경되었습니다.');
   };
 
+  useEffect(() => {
+    console.log('user', user);
+  }, [user]);
+
   // 로그아웃
   const handleLogout = async () => {
-    alert('체험용 계정은 로그아웃을 할 수 없습니다');
-    return;
+    // alert('체험용 계정은 로그아웃을 할 수 없습니다');
+    // return;
     await signOut(auth);
     navigate('/');
   };
@@ -65,27 +69,45 @@ export default function Settings({ user, setUser }) {
     <div className="settings-page">
       <h2 className="settings-title">설정</h2>
 
-      <section className="settings-section">
-        <label className="settings-label">닉네임 변경</label>
-        <input
-          className="settings-input"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          placeholder={user ? user.nickname : '-'}
-        />
-        <button onClick={handleUpdateNickname} className="btn primary">
-          저장
-        </button>
-      </section>
+      {/* 반환하는 값이 undefined 나 null 일 경우 react에서 무시하고 랜더링 안함 */}
+      {user && (
+        <section className="settings-section">
+          <label className="settings-label">닉네임 변경</label>
+          <input
+            className="settings-input"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            placeholder={user ? user.nickname : '-'}
+          />{' '}
+          <button onClick={handleUpdateNickname} className="btn btn_save">
+            저장
+          </button>
+        </section>
+      )}
 
-      <section className="settings-actions">
-        <button onClick={handleLogout} className="btn ghost">
-          로그아웃
-        </button>
-        <button onClick={handleReset} className="btn danger">
-          계정 초기화
-        </button>
-      </section>
+      {user ? (
+        <section className="settings-actions">
+          <button onClick={handleLogout} className="btn btn_log">
+            로그아웃
+          </button>
+          <button onClick={handleReset} className="btn btn_reset">
+            계정 초기화
+          </button>
+        </section>
+      ) : (
+        <div className="guest_area">
+          <p className="welcome-desc">로그인 후 다양한 기능을 이용해보세요.</p>
+          <button className="btn primary " onClick={() => navigate('/login')}>
+            로그인
+          </button>
+          <p className="welcome-desc">
+            계정이 없으신가요?
+            <Link to="/signup" className="link_signup">
+              회원가입 하기
+            </Link>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

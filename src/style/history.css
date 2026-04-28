@@ -1,70 +1,103 @@
-.empty-history {
-  margin: 0;
-  padding: 3rem 1.5rem;
-
+.history_list .stock-tabs {
   display: flex;
-  flex-direction: column;
+  margin-bottom: 2rem;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--color-font-soft2);
+}
+.history_list .stock-tabs li {
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding-bottom: 12px;
+  cursor: pointer;
+  position: relative;
   align-items: center;
+  display: flex;
+  position: relative;
+}
+.history_list .stock-tabs li i {
+  transform: translateY(2px);
+}
+.history_list .option_box {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 0;
+  background: var(--color-bg-soft);
+  min-width: 150px;
+  padding: 8px 0;
+  display: flex;
+  gap: 0;
+  flex-direction: column;
   justify-content: center;
-
-  text-align: center;
-  color: #6b7280; /* gray-500 */
-  font-size: 0.95rem;
-  line-height: 1.6;
-
-  background: #f9fafb;
-  border-radius: 16px;
+  border-bottom-right-radius: 1rem;
+  border-bottom-left-radius: 1rem;
+  box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.1);
+  font-size: 1rem;
+  opacity: 0;
+  transition: all 0.2s ease;
+  transform: translateY(-12px);
+}
+.history_list .option_box > span {
+  display: flex;
+  padding: 10px 20px;
 }
 
-/* 아이콘 느낌 추가 */
-.empty-history::before {
-  content: '📄';
-  font-size: 2rem;
-  margin-bottom: 0.8rem;
-  opacity: 0.8;
+.history_list .option_box > span:hover {
+  opacity: 0.5;
+  background: var(--color-bg-soft-hover);
+  color: #fff;
+}
+.history_list .option_box.open {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-/* ===================
-   거래 내역 카드 리스트
-===================== */
-.card_list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.history_list .stock-tabs .active {
+  border-bottom: 2px solid #111827;
+  color: #111827;
+}
+.history_list .stock-tabs .active:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 2px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.history_list .card_list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-
-.card_list li {
-  background: #f9fafb;
-  border-radius: 16px;
-  padding: 16px 14px;
-
+.history_list .card_link {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-
-  text-align: center;
-  font-size: 14px;
-  color: #374151;
-  line-height: 1.5;
+  width: 100%;
+  align-items: center;
+  gap: 1rem;
 }
-
-/* 종목명 */
-.card_list li strong {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 6px;
+.card_link .left_box {
+  flex-basis: 80px;
+  flex-shrink: 1;
+  flex-grow: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  height: 80px;
 }
-.card_list li p {
+.card_link .left_box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card_link .right_box {
+  flex-basis: auto;
+  flex-shrink: 0;
+  flex-grow: 1;
+}
+.card_link .right_box p {
   margin: 0;
+  font-size: 0.9rem;
 }
 
-/* 날짜 */
-.card_list li div {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #9ca3af;
+.history_list .card_list li {
 }
