@@ -32,9 +32,6 @@ import { auth, db } from './firebase';
 // import { initUserPrices } from './initUserPrices';
 // import './Promise2';
 
-const TEST_EMAIL = 'test0208@gmail.com';
-const TEST_PW = '1q2w3e4r';
-
 function App() {
   const [user, setUser] = useState();
   const DEFAULT_STOCKS = [
@@ -59,7 +56,7 @@ function App() {
   const [stocks, setStocks] = useState(DEFAULT_STOCKS);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
-  const [booting, setBooting] = useState(false);
+  const [pricesInitialized, setPricesInitialized] = useState(false);
 
   const stock_volatility = {
     BearTech: 0.001, // ±0.1%
@@ -115,49 +112,66 @@ function App() {
   // }, [user]);
   // //임시로 테스트 끗
 
-  //체험용 아이디 강제로 로그인하게
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      // onAuthStateChanged는 auth 객체와 콜백을 인자로 받아
-      // 로그인 상태가 변경될 때마다 콜백을 실행하는 리스너를 등록한다.
-      // 반환값으로 구독 해제(unsubscribe) 함수를 제공한다.
-      if (currentUser) {
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        const userSnap = await getDoc(userDocRef);
-        // 실제 getDoc로 가져오는 값은 아래와 같은 구조의 DocumentSnapshot 객체
-        // DocumentSnapshot = {
-        //   id: "abc123",
-        //   exists: function() {...},
-        //   data: function() {
-        //     return {
-        //       balance: 100000,
-        //       nickname: "kim",
-        //       stocks: {...},
-        //       updatedAt: Timestamp
-        //     }
-        //   }
-        // }
+    let unsubUser = null;
+    const unsubAuth = onAuthStateChanged(auth, (fbUser) => {
+      //onAuthStateChanged 는 리스너 함수, api 함수라고 하지
+      //유저 인증 상태 변경시 콜백 함수(" async (fbUser)") 실행 해줌
+      // 페이지 처음 랜더시에도 실행됨.
+      // 첫 번째 인자 auth는 인증 객체 , 두번째는 콜백할 매개변수
+      //현재 로그인된 사용자 정보(auth)의 여부에 따라 { uid, email, displayName, ... }
+      // null이 될 수도 있음 (로그아웃)
 
-        if (userSnap.exists()) {
-          //setUser(userSnap.data());
-        }
-
-        setBooting(false);
-      } else {
-        // try {
-        //   await signInWithEmailAndPassword(auth, TEST_EMAIL, TEST_PW);
-        //   alert('현재 체험용 계정으로 접속 중입니다');
-        // } catch (e) {
-        //   console.error('체험 계정 자동 로그인 실패', e);
-        //   setBooting(false);
-        // }
+      if (!fbUser) {
+        console.log('로그아웃 또는 미로그인 상태');
       }
-    });
 
-    return () => unsubscribe();
-    //useEffect는 리턴값이 없거나 클린업 함수만 리턴이 가능한데
-    //unsubscribe 함수가 클린업 함수인지 구분하는건 리턴값이 함수면 클린업 함수라 인지함
-    //if (typeof unsubscribe === 'function' )
+      if (unsubUser) {
+        unsubUser();
+
+        unsubUser = null;
+      }
+      if (!fbUser) {
+        //fbUser는 로그인 되었을 경우 유저정보, 로그아웃일 땐 null
+        //auth의 객체는 있으면 user객체로 json 형태(emall,uid ~ 등 )을 리턴하지만
+        //없다면 null 이라 exists() 같이 문서가 실제 존재하는지 확인할 필요가 없음
+        //그리고 firebase auth에선 exists() 함수도 존재하지 않음
+        setUser(null);
+        setPricesInitialized(false);
+        return;
+      }
+
+      const userRef = doc(db, 'users', fbUser.uid);
+      //doc는 firestore의 특정 문서를 참조하는 함수, sdk 헬퍼 함수라고 하지
+      //db는 인스턴스로 firebase 디비에서 찾게다 범위
+      //"users"는 컬렉션 (디비 테이블과 유사한 기능 firebase에서만)
+      //fbUser.uid는 문서 ID
+
+      unsubUser = onSnapshot(userRef, async (ss) => {
+        if (ss.exists()) {
+          //여기서 굳이 exists() 를 쓰는 이유는 firebase 에서 데이터가 없어도
+          //snapshot 객체를 리턴함, 그래서 실제 데이터가 있는지 확인해야함
+          //exists()는 firebase에만 잇는 메서드
+
+          /*
+        nickname: nickname.trim(),
+        balance: 1000000,
+        stocks: {},
+        */
+          setUser({ uid: fbUser.uid, ...ss.data() });
+        } else {
+          setUser(null);
+        }
+      });
+      //실시간 리스너 함수로 doc나 collect을 구독해서 해당 데이터가 바뀔 때
+      //콜백 함수가 실행된다.
+      // return () => unsubUser();
+    });
+    //unsubAuth
+    return () => {
+      if (unsubUser) unsubUser(); //  unsubUser 함수가 한 번도 실행 안되엇을 경우엔 null 이므로 에러가 날 수 잇어 if 조건
+      unsubAuth();
+    };
   }, []);
 
   //날짜 관련 함수
@@ -228,43 +242,76 @@ function App() {
     //안써도 자동으로 undefined 반환하긴하는데 의도적으로 null을 줬다는걸 알리기 위함
   }
 
+  // const test_random = () => {
+  //   const rr = DEFAULT_STOCKS.forEach((s) => {
+  //     console.log(`${s.id} 종목의 현재가는 ${s.price}`);
+
+  //     console.log(`${s.id}주식의 등락폭은 엑스트라확률=${extraRange}를 더한 ${percent}입니다`);
+  //   });
+  // };
+
+  // useEffect(() => test_random(), []);
+
   // price 컬렉션 없는 경우 초기화 하는 함수
   async function ensureUserPrices(uid) {
     if (!uid) return;
-
     const pricesCol = collection(db, 'users', uid, 'prices');
     const snap = await getDocs(pricesCol);
     const todayStr = new Date().toISOString().slice(0, 10); // "2025-11-21" 이런 형식
 
-    // 이미 한 번이라도 만들어진 유저라면 바로 종료
-    if (!snap.empty) return;
+    if (!snap.empty) {
+      setPricesInitialized(true);
+      return;
+    }
+    // snap.empty:
+    // Firestore QuerySnapshot 객체의 속성으로,
+    // 객체 내부에 직접 있는 값이 아니라 prototype에 정의된 getter임.
+    // 접근 시 내부 함수가 실행되어 현재 문서 개수(size)를 기준으로
+    // 비어있으면 true, 문서가 하나라도 있으면 false를 반환함.
 
     const batch = writeBatch(db);
+    // 여러개 set 함수를 한번에 실행시키는 함수
+    //하나의 set 함수가 실패하면 전부 취소함 (원자성 보장, 묵음처리)
 
     DEFAULT_STOCKS.forEach((s) => {
       const priceRef = doc(pricesCol, s.id);
+
+      let price = s.price;
+
+      for (let i = 1; i <= 30; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+
+        const extraRange = Math.floor(Math.random() * 4) + 1; // 1~4
+        const baseRange = 0.06 * extraRange;
+        const percent = Math.random() * baseRange - baseRange / 2;
+        //(random * 범위) - 절반 범위, random은 0 ~ 0.9999
+        //최종적으로 -0.04 ~ 0.04 의 범위를 가짐
+        const dateStr = date.toISOString().slice(0, 10); //"2011-10-05T14:48:00.000Z" => 2011-10-05
+        price = Math.round(price * (1 + percent));
+        const historyRef = doc(priceRef, 'history', dateStr);
+        batch.set(
+          historyRef,
+          {
+            date: dateStr,
+            close: price,
+          },
+          { merge: true }
+        );
+      }
       batch.set(
+        // set은 덮여씌우기 , 만약 기존 데이터가 있다면
         priceRef,
         {
-          price: s.price,
+          price: price, // price: price 를 줄임
           updatedAt: serverTimestamp(),
         },
-        { merge: true }
-      );
-
-      // 2) 종목별 history 서브컬렉션에 "오늘" 종가 기록
-      const historyRef = doc(priceRef, 'history', todayStr);
-      batch.set(
-        historyRef,
-        {
-          date: todayStr,
-          close: s.price,
-        },
-        { merge: true }
+        { merge: true } // 다만 merge 값이 true 라면 기존데이터는 유지하고 없는 필드만 추가
       );
     });
 
     await batch.commit();
+    setPricesInitialized(true);
     console.log('초기 가격 세팅 완료:', uid);
   }
 
@@ -340,7 +387,7 @@ function App() {
   useEffect(() => {
     if (!user?.uid) return;
 
-    const INTERVAL_MS = 20 * 1000;
+    const INTERVAL_MS = 60 * 1000;
     const id = setInterval(() => {
       // 현재 메모리에 있는 stocks를 그대로 저장
       savePricesToFirestore(user.uid, current_stocks.current);
@@ -365,30 +412,13 @@ function App() {
   // localstorage 에서 값 가져오기,  localStorage.get/setItem은 내장 함수
 
   useEffect(() => {
-    // 로그아웃/미로그인이면 기본값으로
-    console.log('[soxl] 유저이펙트 실행', user);
+    console.log('스턱스 값 = ', stocks);
+  }, [stocks]);
 
-    if (user === undefined) {
-      console.log('[soxl]아직 로딩중');
-      return;
-    }
-
-    // if (!user?.uid) {
-    if (!user) {
-      console.log('[soxl][2] user 없음 → DEFAULT_STOCKS로 리셋됨');
-      setStocks(DEFAULT_STOCKS);
-      console.log('[soxl][에러] user값', user);
-      return;
-    }
-
-    console.log('[soxl] user값', user);
-
-    //디비에서 가격 불러오는 함수
-
+  useEffect(() => {
     const loadPrices = async () => {
-      console.log('[soxl] loadPrice 실행됨');
       try {
-        console.log('통과-1', user, user.uid);
+        if (!user?.uid || !pricesInitialized) return;
         const snap = await getDocs(collection(db, 'users', user.uid, 'prices'));
         console.log('통과0');
         //console.log('첫번째종목 ID', snap.docs[0].id);
@@ -402,7 +432,7 @@ function App() {
         const priceMap = {};
         // QuerySnapshot {
         //   docs: [
-        //     QueryDocumentSnapshot {
+        //     QueryDocumentSnapshot {   => (QueryDocumentSnapshot 이거는 객체 타입임)
         //       id: "BearTech",
         //       ref: DocumentReference("users/uid/prices/BearTech"),
         //       metadata: { fromCache: false, hasPendingWrites: false },
@@ -481,86 +511,13 @@ function App() {
     loadPrices();
 
     console.log('현재 유저의 스테이트 = ', user);
-  }, [user?.uid]);
-
-  useEffect(() => {
-    let unsubUser = null;
-    const unsubAuth = onAuthStateChanged(auth, (fbUser) => {
-      //onAuthStateChanged 는 리스너 함수, api 함수라고 하지
-      //유저 인증 상태 변경시 콜백 함수(" async (fbUser)") 실행 해줌
-      // 페이지 처음 랜더시에도 실행됨.
-      // 첫 번째 인자 auth는 인증 객체 , 두번째는 콜백할 매개변수
-      //현재 로그인된 사용자 정보(auth)의 여부에 따라 { uid, email, displayName, ... }
-      // null이 될 수도 있음 (로그아웃)
-      const ak = fbUser ?? 'fbuser 비어있음';
-      console.log('auth 변화 감지됨=', ak);
-
-      if (unsubUser) {
-        unsubUser();
-
-        unsubUser = null;
-      }
-      if (!fbUser) {
-        //fbUser는 로그인 되었을 경우 유저정보, 로그아웃일 땐 null
-        //auth의 객체는 있으면 user객체로 json 형태(emall,uid ~ 등 )을 리턴하지만
-        //없다면 null 이라 exists() 같이 문서가 실제 존재하는지 확인할 필요가 없음
-        //그리고 firebase auth에선 exists() 함수도 존재하지 않음
-        setUser(null);
-        return;
-      }
-
-      const userRef = doc(db, 'users', fbUser.uid);
-      //doc는 firestore의 특정 문서를 참조하는 함수, sdk 헬퍼 함수라고 하지
-      //db는 인스턴스로 firebase 디비에서 찾게다 범위
-      //"users"는 컬렉션 (디비 테이블과 유사한 기능 firebase에서만)
-      //fbUser.uid는 문서 ID
-
-      unsubUser = onSnapshot(userRef, async (ss) => {
-        if (ss.exists()) {
-          //여기서 굳이 exists() 를 쓰는 이유는 firebase 에서 데이터가 없어도
-          //snapshot 객체를 리턴함, 그래서 실제 데이터가 있는지 확인해야함
-          //exists()는 firebase에만 잇는 메서드
-
-          /*
-        nickname: nickname.trim(),
-        balance: 1000000,
-        stocks: {},
-        */
-          setUser({ uid: fbUser.uid, ...ss.data() });
-        } else {
-          setUser(null);
-        }
-      });
-      //실시간 리스너 함수로 doc나 collect을 구독해서 해당 데이터가 바뀔 때
-      //콜백 함수가 실행된다.
-      // return () => unsubUser();
-    });
-    //unsubAuth
-    return () => {
-      console.log('유스이펙트 리턴 실행');
-      if (unsubUser) unsubUser(); //  unsubUser 함수가 한 번도 실행 안되엇을 경우엔 null 이므로 에러가 날 수 잇어 if 조건
-      unsubAuth();
-    };
-  }, []);
+  }, [user?.uid, pricesInitialized]);
 
   // useEffect(() => {
   //   if (user?.uid) {
   //     initUserPrices(user.uid);
   //   }
   // }, [user?.uid]);
-
-  useEffect(() => {
-    //console.log('stock 변화 감지', stocks);
-  }, [stocks]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('zoosik-user', JSON.stringify(user));
-      //JSON.stringify 객체(object)를 다시 문자열(string)으로 변환
-    }
-    //localStorage.removeItem('zoosik-user'); //브라우저 id  삭제
-    //console.log('브라우저 유저 상태', user);
-  }, [user]);
 
   useEffect(() => {
     if (!user?.uid) return;

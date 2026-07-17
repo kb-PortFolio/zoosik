@@ -156,7 +156,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 48px - 65px - 35px - 1rem);
+  min-height: calc(100dvh - 48px - 65px - 35px - 1rem);
 }
 .empty-history-txt {
   display: flex;

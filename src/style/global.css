@@ -48,7 +48,7 @@ i {
 #root {
   max-width: 500px;
   margin: 0 auto;
-  min-height: 100vh; /*디바이스 뷰포트 높이의 100%*/
+  min-height: 100dvh; /*디바이스 뷰포트 높이의 100%*/
   padding: 24px 1.8rem 130px;
 }
 
